@@ -11,7 +11,7 @@ pipeline {
     stage('Build Docker Image') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-          bat 'docker build -t %USER%/kubewise-backend:latest ./backend'
+          sh 'docker build -t \/kubewise-backend:latest ./backend'
         }
       }
     }
@@ -19,8 +19,8 @@ pipeline {
     stage('Push to Docker Hub') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-          bat 'docker login -u %USER% -p %PASS%'
-          bat 'docker push %USER%/kubewise-backend:latest'
+          sh 'docker login -u \ -p \'
+          sh 'docker push \/kubewise-backend:latest'
         }
       }
     }
@@ -28,7 +28,7 @@ pipeline {
     stage('Load into Kind') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-          bat 'kind load docker-image %USER%/kubewise-backend:latest --name kubewise'
+          sh 'kind load docker-image \/kubewise-backend:latest --name kubewise'
         }
       }
     }
@@ -36,14 +36,14 @@ pipeline {
     stage('Helm Deploy') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-          bat 'helm upgrade kubewise D:\\kubewise\\kubewise-chart --set image.repository=%USER%/kubewise-backend --set image.pullPolicy=Always'
+          sh 'helm upgrade kubewise /var/jenkins_home/workspace/kubewise-pipeline/kubewise-chart --set image.repository=\/kubewise-backend --set image.pullPolicy=Always'
         }
       }
     }
 
     stage('Verify Deployment') {
       steps {
-        bat 'kubectl rollout status deployment/kubewise-backend'
+        sh 'kubectl rollout status deployment/kubewise-backend'
       }
     }
   }
