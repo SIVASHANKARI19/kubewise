@@ -1,59 +1,75 @@
 pipeline {
-  agent any
+agent any
 
-  stages {
+```
+environment {
+    IMAGE_NAME = "YOUR_DOCKERHUB_USERNAME/kubewise-backend:latest"
+}
+
+stages {
+
     stage('Checkout') {
-      steps {
-        checkout scm
-      }
+        steps {
+            checkout scm
+        }
     }
 
     stage('Build Docker Image') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-          sh 'docker build -t \/kubewise-backend:latest ./backend'
+        steps {
+            sh "docker build -t ${IMAGE_NAME} ./backend"
         }
-      }
     }
 
     stage('Push to Docker Hub') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-          sh 'docker login -u \ -p \'
-          sh 'docker push \/kubewise-backend:latest'
+        steps {
+            withCredentials([
+                usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )
+            ]) {
+                sh '''
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    docker push ${IMAGE_NAME}
+                '''
+            }
         }
-      }
     }
 
     stage('Load into Kind') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-          sh 'kind load docker-image \/kubewise-backend:latest --name kubewise'
+        steps {
+            sh "kind load docker-image ${IMAGE_NAME} --name kubewise"
         }
-      }
     }
 
     stage('Helm Deploy') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-          sh 'helm upgrade kubewise /var/jenkins_home/workspace/kubewise-pipeline/kubewise-chart --set image.repository=\/kubewise-backend --set image.pullPolicy=Always'
+        steps {
+            sh """
+                helm upgrade --install kubewise ./kubewise-chart \
+                --set image.repository=YOUR_DOCKERHUB_USERNAME/kubewise-backend \
+                --set image.tag=latest \
+                --set image.pullPolicy=Always
+            """
         }
-      }
     }
 
     stage('Verify Deployment') {
-      steps {
-        sh 'kubectl rollout status deployment/kubewise-backend'
-      }
+        steps {
+            sh "kubectl rollout status deployment/kubewise-backend"
+        }
     }
-  }
+}
 
-  post {
+post {
     success {
-      echo 'KubeWise deployed successfully!'
+        echo 'KubeWise deployed successfully!'
     }
+
     failure {
-      echo 'Pipeline failed - check logs'
+        echo 'Pipeline failed - check logs'
     }
-  }
+}
+```
+
 }
