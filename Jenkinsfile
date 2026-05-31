@@ -1,10 +1,6 @@
 pipeline {
   agent any
 
-  environment {
-    IMAGE_NAME = "sivashankari19/kubewise-backend:latest"
-  }
-
   stages {
     stage("Checkout") {
       steps {
@@ -15,7 +11,7 @@ pipeline {
     stage("Build Docker Image") {
       steps {
         withCredentials([usernamePassword(credentialsId: "dockerhub-creds", usernameVariable: "DOCKER_USER", passwordVariable: "DOCKER_PASS")]) {
-          sh "docker build -t ${IMAGE_NAME} ./backend"
+          sh "docker build -t ${DOCKER_USER}/kubewise-backend:latest ./backend"
         }
       }
     }
@@ -23,23 +19,15 @@ pipeline {
     stage("Push to Docker Hub") {
       steps {
         withCredentials([usernamePassword(credentialsId: "dockerhub-creds", usernameVariable: "DOCKER_USER", passwordVariable: "DOCKER_PASS")]) {
-          sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-          sh "docker push ${IMAGE_NAME}"
+          sh "docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}"
+          sh "docker push ${DOCKER_USER}/kubewise-backend:latest"
         }
-      }
-    }
-
-    stage("Load into Kind") {
-      steps {
-        sh "kind load docker-image ${IMAGE_NAME} --name kubewise"
       }
     }
 
     stage("Helm Deploy") {
       steps {
-        withCredentials([usernamePassword(credentialsId: "dockerhub-creds", usernameVariable: "DOCKER_USER", passwordVariable: "DOCKER_PASS")]) {
-          sh "helm upgrade --install kubewise ./kubewise-chart --set image.repository=$DOCKER_USER/kubewise-backend --set image.tag=latest --set image.pullPolicy=Always"
-        }
+        sh "helm upgrade --install kubewise ./kubewise-chart --set image.repository=sivashankari19/kubewise-backend --set image.tag=latest --set image.pullPolicy=Always"
       }
     }
 
