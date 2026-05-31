@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubewise-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kubewise-backend
+  template:
+    metadata:
+      labels:
+        app: kubewise-backend
+    spec:
+      containers:
+        - name: backend
+          image: kubewise-backend:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
