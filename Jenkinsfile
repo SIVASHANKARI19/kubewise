@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   environment {
-    IMAGE_NAME = "DOCKER_PLACEHOLDER/kubewise-backend:latest"
+    IMAGE_NAME = "sivashankari19/kubewise-backend:latest"
   }
 
   stages {
